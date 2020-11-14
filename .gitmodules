@@ -1,0 +1,12 @@
+[submodule "gos-api_gateway"]
+	path = gos-api_gateway
+	url = git@github.com:LeoCal4/gos-api_gateway.git
+	branch = main
+[submodule "gos-users"]
+	path = gos-users
+	url = git@github.com:federicosilvestri/gos-users.git
+	branch = master
+[submodule "gos-restaurants"]
+	path = gos-restaurants
+	url = git@github.com:LeoCal4/gos-restaurants.git
+	branch = master
