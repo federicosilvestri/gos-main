@@ -48,8 +48,8 @@ services:
       - gateway.conf
     environment:
       - USERS_MS_HOST=users_ms_worker_node
-      # - RESTAURANTS_MS_HOST=restaurants_ms_worker_node
-      # - RESERVATION_SMS_HOST=reservations_ms_worker_node
+      - RESTAURANTS_MS_HOST=restaurants_ms_worker_node
+      # - RESERVATION_MS_HOST=reservations_ms_worker_node
     labels:
       - gooutsafe.api_gateway_worker
 
@@ -89,7 +89,7 @@ services:
 
   users_ms_worker_node:
     #
-    # Users Microservices Worker node
+    # Users Microservice Worker node
     #
     build: ./gos-users
     restart: on-failure
@@ -101,6 +101,53 @@ services:
     depends_on:
       - users_ms_db
       - users_ms_migrations
+
+  restaurants_ms_db:
+    #
+    # Restaurant Microservice DB
+    #
+    image: library/postgres:10
+    restart: on-failure
+    env_file:
+      - restaurants_ms.conf
+
+  restaurants_ms_worker_migrations:
+    #
+    # Restaurant Migration Service
+    #
+    build: ./gos-restaurants
+    restart: on-failure
+    env_file:
+      - restaurants_ms.conf
+    command: flask db upgrade
+    environment:
+      - POSTGRES_HOST=restaurants_ms_db
+      - RABBIT_MQ_HOST=message_broker_rabmq
+
+  restaurants_ms_worker:
+    #
+    # Restaurant Service Flask Application
+    #
+    build: ./gos-restaurants
+    restart: on-failure
+    env_file:
+      - restaurants_ms.conf
+    environment:
+      - POSTGRES_HOST=restaurants_ms_db
+      - RABBIT_MQ_HOST=message_broker_rabmq
+
+  restaurants_ms_worker_bg:
+    #
+    # Restaurant Service Background Worker
+    #
+    build: ./gos-restaurants
+    restart: on-failure
+    env_file:
+      - restaurants_ms.conf
+    command: python background.py
+    environment:
+      - POSTGRES_HOST=restaurants_ms_db
+      - RABBIT_MQ_HOST=message_broker_rabmq
 
 volumes:
   #
