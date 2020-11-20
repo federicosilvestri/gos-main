@@ -10,3 +10,7 @@
 	path = gos-restaurants
 	url = git@github.com:LeoCal4/gos-restaurants.git
 	branch = master
+[submodule "gos-reservation"]
+	path = gos-reservation
+	url = git@github.com:gasparax/gos-reservation.git
+	branch = main
