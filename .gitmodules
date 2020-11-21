@@ -14,3 +14,7 @@
 	path = gos-reservation
 	url = git@github.com:gasparax/gos-reservation.git
 	branch = main
+[submodule "gos-notifications"]
+	path = gos-notifications
+	url = git@github.com:federicosilvestri/gos-notifications.git
+	branch = master

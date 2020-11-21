@@ -36,7 +36,7 @@ placed inside the project root.
 If you want to add a microservice (hence a submodule), you
 have to run the command:
 
-`git submodule add -b < <branchName> <repoURL>`
+`git submodule add -b <branchName> <repoURL>`
 
 ### Pull the updates from all repositories
 
