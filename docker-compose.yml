@@ -47,9 +47,10 @@ services:
     env_file:
       - gateway.conf
     environment:
-      - USERS_MS_HOST=users_ms_worker_node
-      - RESTAURANTS_MS_HOST=restaurants_ms_worker_node
-      # - RESERVATION_MS_HOST=reservations_ms_worker_node
+      - USERS_MS_HOST=users_ms_worker
+      - RESTAURANTS_MS_HOST=restaurants_ms_worker
+      - RESERVATION_MS_HOST=reservations_ms_worker
+      - NOTIFICATIONS_MS_HOST=notifications_ms_worker
     labels:
       - gooutsafe.api_gateway_worker
 
@@ -77,8 +78,10 @@ services:
     restart: on-failure
     env_file:
       - users_ms.conf
+    environment:
+      - POSTGRES_HOST_AUTH_METHOD=trust
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -99,7 +102,7 @@ services:
       users_ms_db:
         condition: service_healthy
 
-  users_ms_worker_node:
+  users_ms_worker:
     #
     # Users Microservice Worker node
     #
@@ -122,13 +125,15 @@ services:
     restart: on-failure
     env_file:
       - restaurants_ms.conf
+    environment:
+      - POSTGRES_HOST_AUTH_METHOD=trust
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-  restaurants_ms_worker_migrations:
+  restaurants_ms_migrations:
     #
     # Restaurant Migration Service
     #
@@ -158,7 +163,7 @@ services:
     depends_on:
       restaurants_ms_db:
         condition: service_healthy
-      restaurants_ms_worker_migrations:
+      restaurants_ms_migrations:
         condition: service_started
 
   restaurants_ms_worker_bg:
@@ -178,67 +183,69 @@ services:
         condition: service_healthy
       restaurants_ms_db:
         condition: service_healthy
-      restaurants_ms_worker_migrations:
+      restaurants_ms_migrations:
         condition: service_started
 
-  reservations_db:
+  reservations_ms_db:
     image: postgres:10
     restart: on-failure
     env_file:
       - reservations_ms.conf
+    environment:
+      - POSTGRES_HOST_AUTH_METHOD=trust
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-  reservations_migrations:
+  reservations_ms_migrations:
     build: gos-reservation/
     env_file:
       - reservations_ms.conf
     environment:
-      - POSTGRES_HOST=reservations_db
+      - POSTGRES_HOST=reservations_ms_db
       - RABBIT_MQ_HOST=message_broker_rabmq
     command: flask db upgrade
     restart: on-failure
     depends_on:
-      reservations_db:
+      reservations_ms_db:
         condition: service_healthy
       message_broker_rabmq:
         condition: service_healthy
 
-  reservations_worker:
+  reservations_ms_worker:
     build: gos-reservation/
     env_file:
       - reservations_ms.conf
     environment:
-      - POSTGRES_HOST=reservations_db
+      - POSTGRES_HOST=reservations_ms_db
       - RABBIT_MQ_HOST=message_broker_rabmq
     depends_on:
-      reservations_db:
+      reservations_ms_db:
         condition: service_healthy
       message_broker_rabmq:
         condition: service_healthy
-      reservations_migrations:
+      reservations_ms_migrations:
         condition: service_started
 
-  reservations_background_worker:
+  reservations_ms_worker_bg:
     build: gos-reservation/
     env_file:
       - reservations_ms.conf
     environment:
-      - POSTGRES_HOST=reservations_db
+      - POSTGRES_HOST=reservations_ms_db
       - RABBIT_MQ_HOST=message_broker_rabmq
     command: python background.py
     depends_on:
-      reservations_db:
+      reservations_ms_db:
         condition: service_healthy
-      reservations_migrations:
+      reservations_ms_migrations:
         condition: service_started
       message_broker_rabmq:
         condition: service_healthy
 
-  notifications_db:
+  notifications_ms_db:
     image: library/mongo:4.2.2
     restart: unless-stopped
     env_file:
@@ -249,31 +256,31 @@ services:
       timeout: 2s
       retries: 10
 
-  notifications_worker:
+  notifications_ms_worker:
     build: gos-notifications/
     restart: unless-stopped
     env_file:
       - notifications_ms.conf
     environment:
-      - MONGODB_HOST=notifications_db
+      - MONGODB_HOST=notifications_ms_db
       - RABBIT_MQ_HOST=message_broker_rabmq
     depends_on:
-      notifications_db:
+      notifications_ms_db:
         condition: service_healthy
       message_broker_rabmq:
         condition: service_healthy
 
-  notifications_background_worker:
+  notifications_ms_worker_bg:
     build: gos-notifications/
     restart: on-failure
     env_file:
       - notifications_ms.conf
     command: /bin/sh celery_entry.sh
     environment:
-      - MONGODB_HOST=notifications_db
+      - MONGODB_HOST=notifications_ms_db
       - RABBIT_MQ_HOST=message_broker_rabmq
     depends_on:
-      notifications_db:
+      notifications_ms_db:
         condition: service_healthy
       message_broker_rabmq:
         condition: service_healthy
