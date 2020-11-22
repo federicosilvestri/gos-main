@@ -1,4 +1,14 @@
+#######################################################################
+#     mmm          mmmm           m     mmmm           m""            #
+#   m"   "  mmm   m"  "m m   m  mm#mm  #"   "  mmm   mm#mm   mmm      #
+#   #   mm #" "#  #    # #   #    #    "#mmm  "   #    #    #"  #     #
+#   #    # #   #  #    # #   #    #        "# m"""#    #    #""""     #
+#    "mmm" "#m#"   #mm#  "mm"#    "mm  "mmm#" "mm"#    #    "#mm"     #
+#######################################################################
+# Main Dockerfile
+
 version: '3.8'
+
 services:
   # -------------------------------------------- #
   # -------------------------------------------- #
@@ -54,6 +64,12 @@ services:
     labels:
       - gooutsafe.api_gateway_worker
 
+  # -------------------------------------------- #
+  # -------------------------------------------- #
+  # Common Services                              #
+  # -------------------------------------------- #
+  # -------------------------------------------- #
+
   message_broker_rabmq:
     #
     # Message Broker Rabbit MQ
@@ -70,6 +86,12 @@ services:
       timeout: 30s
       retries: 3
 
+  # -------------------------------------------- #
+  # -------------------------------------------- #
+  # Users Microservice                           #
+  # -------------------------------------------- #
+  # -------------------------------------------- #
+
   users_ms_db:
     #
     # Users Microservice Database
@@ -81,7 +103,7 @@ services:
     environment:
       - POSTGRES_HOST_AUTH_METHOD=trust
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: [ "CMD-SHELL", "pg_isready -U $$POSTGRES_USER" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -117,6 +139,12 @@ services:
       - users_ms_db
       - users_ms_migrations
 
+  # -------------------------------------------- #
+  # -------------------------------------------- #
+  # Restaurants Microservice                     #
+  # -------------------------------------------- #
+  # -------------------------------------------- #
+
   restaurants_ms_db:
     #
     # Restaurant Microservice DB
@@ -128,7 +156,7 @@ services:
     environment:
       - POSTGRES_HOST_AUTH_METHOD=trust
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: [ "CMD-SHELL", "pg_isready -U $$POSTGRES_USER" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -186,6 +214,12 @@ services:
       restaurants_ms_migrations:
         condition: service_started
 
+  # -------------------------------------------- #
+  # -------------------------------------------- #
+  # Reservations Microservice                    #
+  # -------------------------------------------- #
+  # -------------------------------------------- #
+
   reservations_ms_db:
     image: postgres:10
     restart: on-failure
@@ -194,7 +228,7 @@ services:
     environment:
       - POSTGRES_HOST_AUTH_METHOD=trust
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: [ "CMD-SHELL", "pg_isready -U $$POSTGRES_USER" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -245,13 +279,19 @@ services:
       message_broker_rabmq:
         condition: service_healthy
 
+  # -------------------------------------------- #
+  # -------------------------------------------- #
+  # Notifications Service                        #
+  # -------------------------------------------- #
+  # -------------------------------------------- #
+
   notifications_ms_db:
     image: library/mongo:4.2.2
     restart: unless-stopped
     env_file:
       - notifications_ms.conf
     healthcheck:
-      test: ["CMD-SHELL", "mongo", "--eval", "\"db.adminCommand('ping')\""]
+      test: [ "CMD-SHELL", "mongo", "--eval", "\"db.adminCommand('ping')\"" ]
       interval: 10s
       timeout: 2s
       retries: 10
@@ -286,9 +326,11 @@ services:
         condition: service_healthy
 
 volumes:
-  #
-  # Volumes declaration
-  #
+  # -------------------------------------------- #
+  # -------------------------------------------- #
+  # Volumes                                      #
+  # -------------------------------------------- #
+  # -------------------------------------------- #
 
   nginx_conf:
   # Nginx configuration volume
