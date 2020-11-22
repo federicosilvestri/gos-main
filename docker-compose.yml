@@ -1,4 +1,4 @@
-version: '3'
+version: '3.8'
 services:
   # -------------------------------------------- #
   # -------------------------------------------- #
@@ -57,11 +57,17 @@ services:
     #
     # Message Broker Rabbit MQ
     #
-    image: library/rabbitmq:3.6-management
+    image: library/rabbitmq:3.8.5-management
     ports:
       - "15672:15672" # Management URL (only for utility)
     env_file:
       - mb_rabmq.conf
+    healthcheck:
+      # basic health check
+      test: rabbitmq-diagnostics -q ping
+      interval: 30s
+      timeout: 30s
+      retries: 3
 
   users_ms_db:
     #
@@ -71,6 +77,11 @@ services:
     restart: on-failure
     env_file:
       - users_ms.conf
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   users_ms_migrations:
     #
@@ -85,7 +96,8 @@ services:
     restart: on-failure
     command: flask db upgrade
     depends_on:
-      - users_ms_db
+      users_ms_db:
+        condition: service_healthy
 
   users_ms_worker_node:
     #
@@ -110,6 +122,11 @@ services:
     restart: on-failure
     env_file:
       - restaurants_ms.conf
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   restaurants_ms_worker_migrations:
     #
@@ -124,7 +141,8 @@ services:
       - POSTGRES_HOST=restaurants_ms_db
       - RABBIT_MQ_HOST=message_broker_rabmq
     depends_on:
-      - restaurants_ms_db
+      restaurants_ms_db:
+        condition: service_healthy
 
   restaurants_ms_worker:
     #
@@ -134,12 +152,14 @@ services:
     restart: on-failure
     env_file:
       - restaurants_ms.conf
-    depends_on:
-      - restaurants_ms_db
-      - restaurants_ms_worker_migrations
     environment:
       - POSTGRES_HOST=restaurants_ms_db
       - RABBIT_MQ_HOST=message_broker_rabmq
+    depends_on:
+      restaurants_ms_db:
+        condition: service_healthy
+      restaurants_ms_worker_migrations:
+        condition: service_started
 
   restaurants_ms_worker_bg:
     #
@@ -154,15 +174,23 @@ services:
       - RABBIT_MQ_HOST=message_broker_rabmq
     command: python background.py
     depends_on:
-      - message_broker_rabmq
-      - restaurants_ms_db
-      - restaurants_ms_worker_migrations
+      message_broker_rabmq:
+        condition: service_healthy
+      restaurants_ms_db:
+        condition: service_healthy
+      restaurants_ms_worker_migrations:
+        condition: service_started
 
   reservations_db:
     image: postgres:10
     restart: on-failure
     env_file:
       - reservations_ms.conf
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   reservations_migrations:
     build: gos-reservation/
@@ -174,8 +202,10 @@ services:
     command: flask db upgrade
     restart: on-failure
     depends_on:
-      - reservations_db
-      - message_broker_rabmq
+      reservations_db:
+        condition: service_healthy
+      message_broker_rabmq:
+        condition: service_healthy
 
   reservations_worker:
     build: gos-reservation/
@@ -185,9 +215,12 @@ services:
       - POSTGRES_HOST=reservations_db
       - RABBIT_MQ_HOST=message_broker_rabmq
     depends_on:
-      - reservations_db
-      - message_broker_rabmq
-      - reservations_migrations
+      reservations_db:
+        condition: service_healthy
+      message_broker_rabmq:
+        condition: service_healthy
+      reservations_migrations:
+        condition: service_started
 
   reservations_background_worker:
     build: gos-reservation/
@@ -198,15 +231,23 @@ services:
       - RABBIT_MQ_HOST=message_broker_rabmq
     command: python background.py
     depends_on:
-      - reservations_db
-      - message_broker_rabmq
-      - reservations_migrations
+      reservations_db:
+        condition: service_healthy
+      reservations_migrations:
+        condition: service_started
+      message_broker_rabmq:
+        condition: service_healthy
 
   notifications_db:
     image: library/mongo:4.2.2
     restart: unless-stopped
     env_file:
       - notifications_ms.conf
+    healthcheck:
+      test: ["CMD-SHELL", "mongo", "--eval", "\"db.adminCommand('ping')\""]
+      interval: 10s
+      timeout: 2s
+      retries: 10
 
   notifications_worker:
     build: gos-notifications/
@@ -217,8 +258,10 @@ services:
       - MONGODB_HOST=notifications_db
       - RABBIT_MQ_HOST=message_broker_rabmq
     depends_on:
-      - notifications_db
-      - message_broker_rabmq
+      notifications_db:
+        condition: service_healthy
+      message_broker_rabmq:
+        condition: service_healthy
 
   notifications_background_worker:
     build: gos-notifications/
@@ -230,9 +273,10 @@ services:
       - MONGODB_HOST=notifications_db
       - RABBIT_MQ_HOST=message_broker_rabmq
     depends_on:
-      - notifications_db
-      - message_broker_rabmq
-
+      notifications_db:
+        condition: service_healthy
+      message_broker_rabmq:
+        condition: service_healthy
 
 volumes:
   #
