@@ -128,6 +128,7 @@ services:
     environment:
       - POSTGRES_HOST=users_ms_db
       - RABBIT_MQ_HOST=message_broker_rabmq
+      - REDIS_HOST=redis_cache
     restart: on-failure
     command: flask db upgrade
     depends_on:
@@ -145,9 +146,39 @@ services:
     environment:
       - POSTGRES_HOST=users_ms_db
       - RABBIT_MQ_HOST=message_broker_rabmq
+      - REDIS_HOST=redis_cache
     depends_on:
-      - users_ms_db
-      - users_ms_migrations
+      users_ms_db:
+        condition: service_healthy
+      users_ms_migrations:
+        condition: service_started
+      message_broker_rabmq:
+        condition: service_healthy
+      redis_cache:
+        condition: service_healthy
+
+  users_ms_worker_bg:
+    #
+    # Users Microservices Worker node (background
+    #
+    build: ./gos-users
+    restart: on-failure
+    command: /bin/bash celery_entry.sh
+    env_file:
+      - users_ms.conf
+    environment:
+      - POSTGRES_HOST=users_ms_db
+      - RABBIT_MQ_HOST=message_broker_rabmq
+      - REDIS_HOST=redis_cache
+    depends_on:
+      users_ms_db:
+        condition: service_healthy
+      users_ms_migrations:
+        condition: service_started
+      message_broker_rabmq:
+        condition: service_healthy
+      redis_cache:
+        condition: service_healthy
 
   # -------------------------------------------- #
   # -------------------------------------------- #
