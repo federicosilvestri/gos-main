@@ -42,6 +42,14 @@ services:
     ports:
       - "80:80"
 
+  redis_cache:
+    image: library/redis:6.0.9
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 1s
+      timeout: 3s
+      retries: 30
+
   api_gateway:
     #
     # API Gateway
@@ -57,12 +65,18 @@ services:
     env_file:
       - gateway.conf
     environment:
+      - REDIS_HOST=redis_cache
       - USERS_MS_HOST=users_ms_worker
       - RESTAURANTS_MS_HOST=restaurants_ms_worker
       - RESERVATION_MS_HOST=reservations_ms_worker
       - NOTIFICATIONS_MS_HOST=notifications_ms_worker
     labels:
       - gooutsafe.api_gateway_worker
+    depends_on:
+      redis_cache:
+        condition: service_healthy
+    ports:
+      - "5000:5000"
 
   # -------------------------------------------- #
   # -------------------------------------------- #
