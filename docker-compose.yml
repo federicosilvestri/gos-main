@@ -114,8 +114,6 @@ services:
     restart: on-failure
     env_file:
       - users_ms.conf
-    environment:
-      - POSTGRES_HOST_AUTH_METHOD=trust
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U $$POSTGRES_USER" ]
       interval: 10s
@@ -167,8 +165,6 @@ services:
     restart: on-failure
     env_file:
       - restaurants_ms.conf
-    environment:
-      - POSTGRES_HOST_AUTH_METHOD=trust
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U $$POSTGRES_USER" ]
       interval: 10s
@@ -239,8 +235,6 @@ services:
     restart: on-failure
     env_file:
       - reservations_ms.conf
-    environment:
-      - POSTGRES_HOST_AUTH_METHOD=trust
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U $$POSTGRES_USER" ]
       interval: 10s
