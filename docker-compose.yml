@@ -68,7 +68,7 @@ services:
       - REDIS_HOST=redis_cache
       - USERS_MS_HOST=users_ms_worker
       - RESTAURANTS_MS_HOST=restaurants_ms_worker
-      - RESERVATION_MS_HOST=reservations_ms_worker
+      - RESERVATIONS_MS_HOST=reservations_ms_worker
       - NOTIFICATIONS_MS_HOST=notifications_ms_worker
     labels:
       - gooutsafe.api_gateway_worker
