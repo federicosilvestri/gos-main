@@ -356,6 +356,7 @@ services:
     environment:
       - MONGODB_HOST=notifications_ms_db
       - RABBIT_MQ_HOST=message_broker_rabmq
+      - RESTAURANTS_MS_HOST=restaurants_ms_worker
     depends_on:
       notifications_ms_db:
         condition: service_healthy
